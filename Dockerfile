@@ -10,4 +10,5 @@ COPY ./website/ /var/www/html/
 EXPOSE 80
 
 # Start Apache in the foreground
-CMD ["apache2-foreground"]
+# CMD ["apache2-foreground"]
+CMD apachectl -D FOREGROUND
