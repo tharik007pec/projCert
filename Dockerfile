@@ -1,5 +1,4 @@
-# Use an official PHP runtime as the base image
-FROM php:7.4-apache
+FROM devopsedu/webapp
 
 # Set the working directory in the container
 WORKDIR /var/www/html
