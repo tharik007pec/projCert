@@ -1,6 +1,41 @@
 pipeline {
     agent any
     stages {
+        stage('Install Puppet Agent') {
+            agent {node { label 'jenkins_slave' }}
+            steps {
+                script {
+                    // Install Puppet Agent on the slave node
+                    sh '''
+                        wget https://apt.puppetlabs.com/puppetlabs-release-pc1-trusty.deb
+                        sudo dpkg -i puppetlabs-release-pc1-trusty.deb
+                        sudo apt-get update
+                        sudo apt-get install puppet-agent
+                    '''
+                }
+            }
+        }
+        stage('Configure Puppet Agent & run') {
+            agent {node { label 'jenkins_slave' }}
+            steps {
+                script {
+                    def puppetPath = "/opt/puppetlabs/bin" // Update with your Puppet bin directory path
+                    env.PATH = "${puppetPath}:${env.PATH}"
+                    // Configure Puppet Agent to master node
+                    sh '''
+                        puppet config set server 172.31.12.42
+                    '''
+                    // Start the Puppet Agent service
+                    sh '''
+                        sudo systemctl start puppet
+                    '''
+                     // Run Puppet to apply configurations
+                    // sh '''
+                    //     puppet agent -t
+                    // '''
+                }
+            }
+        }
         stage('Checkout Code in master') {
             steps {
                 script {
@@ -21,7 +56,7 @@ pipeline {
                         ls
                         pwd
                         cd projCert
-                        ansible-playbook -i inventory.ini instal-docker.yml --extra-vars "ansible_password=admin ansible_sudo_pass=admin"
+                        ansible-playbook -i inventory.ini instal-docker.yml
                     '''
                 }
             }
@@ -46,8 +81,6 @@ pipeline {
                     try {
                         // Build the Docker image (if not already built)
                         sh '''
-                            ls
-                            pwd
                             cd projCert
                             sudo docker build -t my-php-app .
                         '''
@@ -65,10 +98,6 @@ pipeline {
                 // Run the Docker container
                 script {
                     try{
-                        // sh '''
-                        //   docker run -p 8080:80 -d my-php-app:latest > containId
-                        // '''
-                        // echo "Docker runing ${containId}"
                         // docker.image('my-php-app:latest').withRun('-p 8080:80', '--name php-app-container')
                         def containerId = sh(script: 'docker run --name sample-one -p 8080:80 -d my-php-app:latest', returnStdout: true).trim()
                         // Wait for a few seconds to allow the container to start (optional)
